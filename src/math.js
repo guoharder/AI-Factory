@@ -15,4 +15,11 @@ function div(a, b) {
   return a / b;
 }
 
-module.exports = { add, sub, mul, div };
+function pow(a, n) {
+  if (!Number.isInteger(n) || n < 0) throw new Error("exponent must be a non-negative integer");
+  let r = 1;
+  for (let i = 0; i < n; i++) r *= a;
+  return r;
+}
+
+module.exports = { add, sub, mul, div, pow };
