@@ -10,4 +10,9 @@ function mul(a, b) {
   return a * b;
 }
 
-module.exports = { add, sub, mul };
+function div(a, b) {
+  if (b === 0) throw new Error("division by zero");
+  return a / b;
+}
+
+module.exports = { add, sub, mul, div };
