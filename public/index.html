@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Web Calculator</title>
+  </head>
+  <body>
+    <h1>Web Calculator</h1>
+    <p>Uses the shared math functions from <code>src/math.js</code>.</p>
+
+    <form id="calc">
+      <label>
+        A:
+        <input type="number" id="a" step="any" value="2" />
+      </label>
+      <label>
+        Operation:
+        <select id="op">
+          <option value="add">add (a + b)</option>
+          <option value="sub">sub (a - b)</option>
+          <option value="mul">mul (a * b)</option>
+          <option value="div">div (a / b)</option>
+          <option value="pow">pow (a ^ b)</option>
+        </select>
+      </label>
+      <label>
+        B:
+        <input type="number" id="b" step="any" value="3" />
+      </label>
+      <button type="submit">Compute</button>
+    </form>
+
+    <p id="result" role="status"></p>
+
+    <!-- Shared source of truth; sets window.math. No math logic is redefined here. -->
+    <script src="/src/math.js"></script>
+    <script>
+      (function () {
+        var form = document.getElementById("calc");
+        var result = document.getElementById("result");
+
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+
+          var a = Number(document.getElementById("a").value);
+          var b = Number(document.getElementById("b").value);
+          var op = document.getElementById("op").value;
+
+          if (Number.isNaN(a) || Number.isNaN(b)) {
+            result.textContent = "Please enter valid numbers for A and B.";
+            return;
+          }
+
+          try {
+            var value = window.math[op](a, b);
+            result.textContent = "Result: " + value;
+          } catch (err) {
+            result.textContent = "Error: " + err.message;
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

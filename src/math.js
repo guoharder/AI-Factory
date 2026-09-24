@@ -22,4 +22,9 @@ function pow(a, n) {
   return r;
 }
 
-module.exports = { add, sub, mul, div, pow };
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { add, sub, mul, div, pow };
+}
+if (typeof window !== "undefined") {
+  window.math = { add, sub, mul, div, pow };
+}
