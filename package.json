@@ -4,6 +4,6 @@
   "description": "Minimal math app with a web calculator page",
   "scripts": {
     "start": "node server.js",
-    "test": "node test/math.test.js && node test/calc.test.js"
+    "test": "node test/math.test.js && node test/calc.test.js && node test/server.regression.test.js"
   }
 }

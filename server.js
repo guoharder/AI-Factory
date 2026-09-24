@@ -22,7 +22,14 @@ function contentTypeFor(filePath) {
 // Resolve a request path to an on-disk file, confined to the served roots.
 // Returns null for anything outside public/ or the single src/math.js file.
 function resolveFile(urlPath) {
-  const decoded = decodeURIComponent(urlPath.split("?")[0]);
+  let decoded;
+  try {
+    decoded = decodeURIComponent(urlPath.split("?")[0]);
+  } catch (err) {
+    // Malformed percent-encoding (e.g. "/%", "/%zz") throws URIError.
+    // Treat as not found instead of letting it crash the process.
+    return null;
+  }
 
   if (decoded === "/src/math.js") {
     return MATH_FILE;
@@ -67,6 +74,12 @@ server.on("error", (err) => {
   process.exit(1);
 });
 
-server.listen(PORT, HOST, () => {
-  console.log(`Calculator running at http://${HOST}:${PORT}/`);
-});
+// Only start listening when run directly (`node server.js` / `npm start`),
+// so tests can require this module and exercise resolveFile without binding a port.
+if (require.main === module) {
+  server.listen(PORT, HOST, () => {
+    console.log(`Calculator running at http://${HOST}:${PORT}/`);
+  });
+}
+
+module.exports = { resolveFile, contentTypeFor };
