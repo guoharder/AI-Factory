@@ -29,5 +29,9 @@ assert.strictEqual(typeof mathLib.div, "function");
 assert.strictEqual(mathLib.add(2, 3), 5);
 assert.strictEqual(mathLib.div(10, 2), 5);
 assert.throws(() => mathLib.div(1, 0), /division by zero/);
+assert.strictEqual(typeof mathLib.pow, "function");
+assert.strictEqual(mathLib.pow(2, 10), 1024);
+assert.strictEqual(mathLib.pow(5, 0), 1);
+assert.throws(() => mathLib.pow(2, -1), /non-negative integer/);
 
 console.log("calc.test.js: all assertions passed");
