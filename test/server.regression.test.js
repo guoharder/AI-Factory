@@ -32,5 +32,12 @@ assert.ok(resolveFile("/index%2Ehtml").endsWith(path.join("public", "index.html"
 // Path traversal remains blocked (guard unchanged by the fix).
 assert.strictEqual(resolveFile("/../package.json"), null, "traversal still blocked");
 assert.strictEqual(resolveFile("/../../etc/passwd"), null, "deep traversal still blocked");
+assert.strictEqual(resolveFile("/%2e%2e/package.json"), null, "encoded traversal blocked (%2e%2e)");
+assert.strictEqual(resolveFile("/..%2fpackage.json"), null, "encoded traversal blocked (..%2f)");
+assert.strictEqual(
+  resolveFile("/foo/%2e%2e/%2e%2e/etc/passwd"),
+  null,
+  "encoded nested traversal blocked"
+);
 
 console.log("server.regression.test.js: all assertions passed");
