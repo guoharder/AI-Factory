@@ -22,4 +22,9 @@ function pow(a, n) {
   return r;
 }
 
-module.exports = { add, sub, mul, div, pow };
+// Dual export: CommonJS (Node) + browser global
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { add, sub, mul, div, pow };
+} else {
+  globalThis.mathLib = { add, sub, mul, div, pow };
+}
