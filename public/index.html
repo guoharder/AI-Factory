@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Web Calculator</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 32rem;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      color: #1a1a1a;
+    }
+    h1 { font-size: 1.4rem; }
+    .row { margin: 0.75rem 0; }
+    label { display: inline-block; width: 6rem; }
+    input[type="number"] { padding: 0.4rem; width: 10rem; }
+    .ops button {
+      padding: 0.5rem 0.9rem;
+      margin-right: 0.4rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    #result {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      min-height: 1.4rem;
+      font-size: 1.1rem;
+    }
+    #result.error { color: #b00020; border-color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>Web Calculator</h1>
+
+  <div class="row">
+    <label for="a">Operand A</label>
+    <input type="number" id="a" step="any" value="0" />
+  </div>
+  <div class="row">
+    <label for="b">Operand B</label>
+    <input type="number" id="b" step="any" value="0" />
+  </div>
+
+  <div class="row ops">
+    <button type="button" data-op="add">Add (+)</button>
+    <button type="button" data-op="sub">Subtract (−)</button>
+    <button type="button" data-op="mul">Multiply (×)</button>
+    <button type="button" data-op="div">Divide (÷)</button>
+  </div>
+
+  <div id="result" aria-live="polite">Result will appear here.</div>
+
+  <!-- Single source of truth: reuse src/math.js (no arithmetic reimplemented here) -->
+  <script src="/src/math.js"></script>
+  <script>
+    (function () {
+      var resultEl = document.getElementById("result");
+
+      function showResult(text) {
+        resultEl.textContent = text;
+        resultEl.classList.remove("error");
+      }
+      function showError(text) {
+        resultEl.textContent = text;
+        resultEl.classList.add("error");
+      }
+
+      function compute(op) {
+        var aRaw = document.getElementById("a").value;
+        var bRaw = document.getElementById("b").value;
+        var a = Number(aRaw);
+        var b = Number(bRaw);
+
+        if (aRaw.trim() === "" || bRaw.trim() === "" || Number.isNaN(a) || Number.isNaN(b)) {
+          showError("Please enter two valid numbers.");
+          return;
+        }
+
+        try {
+          var value = window.mathLib[op](a, b);
+          showResult("Result: " + value);
+        } catch (err) {
+          showError("Error: " + err.message);
+        }
+      }
+
+      var buttons = document.querySelectorAll(".ops button");
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].addEventListener("click", function () {
+          compute(this.getAttribute("data-op"));
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
