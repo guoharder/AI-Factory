@@ -15,9 +15,26 @@ function median(values) {
   return sorted[mid];
 }
 
+// percentile: p-th percentile via linear interpolation (R-7 / NumPy "linear"
+// default), with p given in [0, 100]. Chosen so percentile(v, 50) === median(v)
+// for both odd and even lengths, making percentile a strict generalization of
+// median. Pure: input is copied before sorting.
+function percentile(values, p) {
+  if (values.length === 0) throw new Error("percentile of empty array");
+  if (typeof p !== "number" || !Number.isFinite(p) || p < 0 || p > 100) {
+    throw new Error("percentile p must be in [0, 100]");
+  }
+  const sorted = values.slice().sort((a, b) => a - b);
+  const rank = (p / 100) * (sorted.length - 1);
+  const lo = Math.floor(rank);
+  const hi = Math.ceil(rank);
+  if (lo === hi) return sorted[lo];
+  return sorted[lo] + (rank - lo) * (sorted[hi] - sorted[lo]);
+}
+
 // Dual export: CommonJS (Node) + browser global
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { mean, median };
+  module.exports = { mean, median, percentile };
 } else {
-  globalThis.statsLib = { mean, median };
+  globalThis.statsLib = { mean, median, percentile };
 }
