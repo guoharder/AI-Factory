@@ -2,7 +2,7 @@ const assert = require("node:assert");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const { mean, median, percentile } = require("../src/stats");
+const { mean, median, percentile, range } = require("../src/stats");
 
 // mean: typical, single-element, empty
 assert.strictEqual(mean([1, 2, 3, 4]), 2.5);
@@ -71,6 +71,20 @@ const pv = [3, 1, 2];
 percentile(pv, 90);
 assert.deepStrictEqual(pv, [3, 1, 2]);
 
+// range: typical (max - min), single-element (0), negatives, duplicates/unsorted
+assert.strictEqual(range([1, 2, 3, 4]), 3);
+assert.strictEqual(range([5]), 0);
+assert.strictEqual(range([-5, -1, -10]), 9);
+assert.strictEqual(range([3, 1, 2, 1, 3]), 2);
+
+// range: empty array throws
+assert.throws(() => range([]), /range of empty array/);
+
+// range: purity — must not mutate its input
+const rv = [3, 1, 2];
+range(rv);
+assert.deepStrictEqual(rv, [3, 1, 2]);
+
 // percentile: browser (no-CommonJS) load branch defines statsLib.percentile
 const source = fs.readFileSync(path.join(__dirname, "..", "src", "stats.js"), "utf8");
 const sandbox = { globalThis: {} };
@@ -81,5 +95,7 @@ const statsLib = sandbox.globalThis.statsLib;
 assert.ok(statsLib, "statsLib global should be defined in the browser branch");
 assert.strictEqual(typeof statsLib.percentile, "function");
 assert.strictEqual(statsLib.percentile([1, 2, 3, 4], 50), 2.5);
+assert.strictEqual(typeof statsLib.range, "function");
+assert.strictEqual(statsLib.range([1, 2, 3, 4]), 3);
 
 console.log("stats.test.js: all assertions passed");
