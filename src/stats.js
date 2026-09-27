@@ -47,9 +47,29 @@ function range(values) {
   return max - min;
 }
 
+// clamp: bound value to the inclusive range [min, max] — return min when
+// value < min, max when value > max, otherwise value unchanged. Operates on
+// scalars (unlike its array siblings) so it is inherently pure. Rejects an
+// invalid range (min > max) per the issue, and — matching percentile()'s
+// input-validation defensiveness — requires value, min, and max to all be
+// finite numbers.
+function clamp(value, min, max) {
+  if (
+    typeof value !== "number" || !Number.isFinite(value) ||
+    typeof min !== "number" || !Number.isFinite(min) ||
+    typeof max !== "number" || !Number.isFinite(max)
+  ) {
+    throw new Error("clamp expects finite numbers");
+  }
+  if (min > max) throw new Error("clamp min must be <= max");
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
+}
+
 // Dual export: CommonJS (Node) + browser global
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { mean, median, percentile, range };
+  module.exports = { mean, median, percentile, range, clamp };
 } else {
-  globalThis.statsLib = { mean, median, percentile, range };
+  globalThis.statsLib = { mean, median, percentile, range, clamp };
 }

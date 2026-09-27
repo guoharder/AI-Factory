@@ -2,7 +2,7 @@ const assert = require("node:assert");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const { mean, median, percentile, range } = require("../src/stats");
+const { mean, median, percentile, range, clamp } = require("../src/stats");
 
 // mean: typical, single-element, empty
 assert.strictEqual(mean([1, 2, 3, 4]), 2.5);
@@ -85,6 +85,30 @@ const rv = [3, 1, 2];
 range(rv);
 assert.deepStrictEqual(rv, [3, 1, 2]);
 
+// clamp: in-range pass-through, below-range -> min, above-range -> max
+assert.strictEqual(clamp(5, 0, 10), 5);
+assert.strictEqual(clamp(-3, 0, 10), 0);
+assert.strictEqual(clamp(42, 0, 10), 10);
+
+// clamp: inclusive boundaries returned unchanged
+assert.strictEqual(clamp(0, 0, 10), 0);
+assert.strictEqual(clamp(10, 0, 10), 10);
+
+// clamp: degenerate equal-bounds range is valid and returns the value
+assert.strictEqual(clamp(5, 5, 5), 5);
+
+// clamp: negative ranges
+assert.strictEqual(clamp(-5, -10, -1), -5);
+assert.strictEqual(clamp(-20, -10, -1), -10);
+
+// clamp: invalid range (min > max) throws
+assert.throws(() => clamp(5, 10, 0), /clamp min must be <= max/);
+
+// clamp: non-finite / non-number inputs throw
+assert.throws(() => clamp(NaN, 0, 10), /clamp expects finite numbers/);
+assert.throws(() => clamp(5, 0, Infinity), /clamp expects finite numbers/);
+assert.throws(() => clamp("5", 0, 10), /clamp expects finite numbers/);
+
 // percentile: browser (no-CommonJS) load branch defines statsLib.percentile
 const source = fs.readFileSync(path.join(__dirname, "..", "src", "stats.js"), "utf8");
 const sandbox = { globalThis: {} };
@@ -97,5 +121,7 @@ assert.strictEqual(typeof statsLib.percentile, "function");
 assert.strictEqual(statsLib.percentile([1, 2, 3, 4], 50), 2.5);
 assert.strictEqual(typeof statsLib.range, "function");
 assert.strictEqual(statsLib.range([1, 2, 3, 4]), 3);
+assert.strictEqual(typeof statsLib.clamp, "function");
+assert.strictEqual(statsLib.clamp(42, 0, 10), 10);
 
 console.log("stats.test.js: all assertions passed");
