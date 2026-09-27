@@ -32,9 +32,24 @@ function percentile(values, p) {
   return sorted[lo] + (rank - lo) * (sorted[hi] - sorted[lo]);
 }
 
+// range: difference between the largest and smallest element (max - min).
+// Single-pass reduction — no sort, no copy, inherently pure. Uses an explicit
+// for...of loop (mirrors mean()) rather than Math.max(...values)/Math.min(...)
+// which throws RangeError on very large arrays (spread argument-count limit).
+function range(values) {
+  if (values.length === 0) throw new Error("range of empty array");
+  let min = values[0];
+  let max = values[0];
+  for (const v of values) {
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  return max - min;
+}
+
 // Dual export: CommonJS (Node) + browser global
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { mean, median, percentile };
+  module.exports = { mean, median, percentile, range };
 } else {
-  globalThis.statsLib = { mean, median, percentile };
+  globalThis.statsLib = { mean, median, percentile, range };
 }
