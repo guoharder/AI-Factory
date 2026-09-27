@@ -57,6 +57,15 @@ assert.throws(() => percentile([1, 2, 3], NaN), /percentile p must be in \[0, 10
 assert.strictEqual(percentile([10, 1, 2], 0), 1);
 assert.strictEqual(percentile([10, 1, 2], 100), 10);
 
+// percentile: position landing exactly on a data point returns that value (AC-13)
+// rank(p50) on 5 elements = 0.50 * 4 = 2 -> sorted[2] === 30, no interpolation
+assert.strictEqual(percentile([10, 20, 30, 40, 50], 50), 30);
+assert.strictEqual(percentile([1, 2, 3, 4], 25), 1.75);
+
+// percentile: duplicate values are ranked distinctly; interpolated median lands
+// on a repeated value (AC-15). rank(p50) on 4 elements = 1.5 -> 1 + 0.5*(1-1) = 1
+assert.strictEqual(percentile([1, 1, 1, 2], 50), 1);
+
 // percentile: purity — must not mutate its input
 const pv = [3, 1, 2];
 percentile(pv, 90);
