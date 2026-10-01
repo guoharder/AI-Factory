@@ -72,9 +72,14 @@ function t1stamp() {
   return "t1";
 }
 
+// t1legacy: fixed string marker; takes no arguments and returns "legacy".
+function t1legacy() {
+  return "legacy";
+}
+
 // Dual export: CommonJS (Node) + browser global
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { mean, median, percentile, range, clamp, t1stamp };
+  module.exports = { mean, median, percentile, range, clamp, t1stamp, t1legacy };
 } else {
-  globalThis.statsLib = { mean, median, percentile, range, clamp, t1stamp };
+  globalThis.statsLib = { mean, median, percentile, range, clamp, t1stamp, t1legacy };
 }
