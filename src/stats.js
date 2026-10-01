@@ -67,9 +67,14 @@ function clamp(value, min, max) {
   return value;
 }
 
+// t1stamp: fixed string marker; takes no arguments and returns "t1".
+function t1stamp() {
+  return "t1";
+}
+
 // Dual export: CommonJS (Node) + browser global
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { mean, median, percentile, range, clamp };
+  module.exports = { mean, median, percentile, range, clamp, t1stamp };
 } else {
-  globalThis.statsLib = { mean, median, percentile, range, clamp };
+  globalThis.statsLib = { mean, median, percentile, range, clamp, t1stamp };
 }

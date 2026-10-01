@@ -2,7 +2,7 @@ const assert = require("node:assert");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const { mean, median, percentile, range, clamp } = require("../src/stats");
+const { mean, median, percentile, range, clamp, t1stamp } = require("../src/stats");
 
 // mean: typical, single-element, empty
 assert.strictEqual(mean([1, 2, 3, 4]), 2.5);
@@ -109,6 +109,9 @@ assert.throws(() => clamp(NaN, 0, 10), /clamp expects finite numbers/);
 assert.throws(() => clamp(5, 0, Infinity), /clamp expects finite numbers/);
 assert.throws(() => clamp("5", 0, 10), /clamp expects finite numbers/);
 
+// t1stamp: zero-argument constant marker returns "t1"
+assert.strictEqual(t1stamp(), "t1");
+
 // percentile: browser (no-CommonJS) load branch defines statsLib.percentile
 const source = fs.readFileSync(path.join(__dirname, "..", "src", "stats.js"), "utf8");
 const sandbox = { globalThis: {} };
@@ -123,5 +126,7 @@ assert.strictEqual(typeof statsLib.range, "function");
 assert.strictEqual(statsLib.range([1, 2, 3, 4]), 3);
 assert.strictEqual(typeof statsLib.clamp, "function");
 assert.strictEqual(statsLib.clamp(42, 0, 10), 10);
+assert.strictEqual(typeof statsLib.t1stamp, "function");
+assert.strictEqual(statsLib.t1stamp(), "t1");
 
 console.log("stats.test.js: all assertions passed");
