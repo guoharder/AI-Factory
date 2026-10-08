@@ -87,3 +87,32 @@ Returns the fixed string marker `"t1"`. Takes no arguments.
 ```js
 t1stamp()   // "t1"
 ```
+
+---
+
+## Calc API
+
+`GET /api/calc?expr=<expression>` evaluates an arithmetic expression and returns the result as JSON.
+
+> **Note:** evaluation uses `new Function`, which executes arbitrary JavaScript in the server process. This endpoint is intended for local use only — never expose it to untrusted networks.
+
+**Success — HTTP 200**
+
+```
+GET /api/calc?expr=2*(3+4)
+```
+
+```json
+{"expr":"2*(3+4)","result":14}
+```
+
+- **Returns** `{ "expr": string, "result": number }`
+
+**Error — HTTP 400**
+
+```json
+{"error":"expr is required"}
+```
+
+- **Returns** `{ "error": string }` when `expr` is missing or empty
+- **Returns** `{ "error": string }` when the expression cannot be evaluated (syntax error, undefined identifier, etc.)
