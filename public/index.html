@@ -31,6 +31,27 @@
       font-size: 1.1rem;
     }
     #result.error { color: #b00020; border-color: #b00020; }
+    #history { margin-top: 1.5rem; }
+    #history h2 { font-size: 1rem; margin-bottom: 0.5rem; }
+    #history-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 0.75rem 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    #history-list li {
+      padding: 0.4rem 0.75rem;
+      border-bottom: 1px solid #eee;
+      font-size: 0.95rem;
+    }
+    #history-list li:last-child { border-bottom: none; }
+    #history-list li.history-empty { color: #888; }
+    #clear-history {
+      padding: 0.5rem 0.9rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -54,10 +75,19 @@
 
   <div id="result" aria-live="polite">Result will appear here.</div>
 
+  <section id="history">
+    <h2>History</h2>
+    <ul id="history-list"></ul>
+    <button type="button" id="clear-history">Clear history</button>
+  </section>
+
   <!-- Single source of truth: reuse src/math.js (no arithmetic reimplemented here) -->
   <script src="/src/math.js"></script>
   <script>
     (function () {
+      var HISTORY_LIMIT = 20;
+      var history = [];
+
       var resultEl = document.getElementById("result");
 
       function showResult(text) {
@@ -67,6 +97,50 @@
       function showError(text) {
         resultEl.textContent = text;
         resultEl.classList.add("error");
+      }
+
+      function renderHistory() {
+        var listEl = document.getElementById("history-list");
+        listEl.textContent = "";
+        if (history.length === 0) {
+          var empty = document.createElement("li");
+          empty.className = "history-empty";
+          empty.textContent = "No history yet.";
+          listEl.appendChild(empty);
+          return;
+        }
+        for (var i = 0; i < history.length; i++) {
+          var li = document.createElement("li");
+          li.textContent = history[i].expr;
+          listEl.appendChild(li);
+        }
+      }
+
+      function pushHistory(expr, value) {
+        history.push({ expr: expr, value: value });
+        history = history.slice(-HISTORY_LIMIT);
+        try {
+          localStorage.setItem("calc_history", JSON.stringify(history));
+        } catch (e) {
+          // localStorage unavailable (private mode, quota exceeded) — degrade silently
+        }
+        renderHistory();
+      }
+
+      function loadHistory() {
+        try {
+          var raw = localStorage.getItem("calc_history");
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              history = parsed;
+            }
+          }
+        } catch (e) {
+          // Malformed storage — start fresh
+          history = [];
+        }
+        renderHistory();
       }
 
       function compute(op) {
@@ -80,9 +154,12 @@
           return;
         }
 
+        var opSymbols = { add: "+", sub: "−", mul: "×", div: "÷" };
+
         try {
           var value = window.mathLib[op](a, b);
           showResult("Result: " + value);
+          pushHistory(a + " " + opSymbols[op] + " " + b + " = " + value, value);
         } catch (err) {
           showError("Error: " + err.message);
         }
@@ -94,6 +171,18 @@
           compute(this.getAttribute("data-op"));
         });
       }
+
+      document.getElementById("clear-history").addEventListener("click", function () {
+        history = [];
+        try {
+          localStorage.removeItem("calc_history");
+        } catch (e) {
+          // localStorage unavailable — nothing to remove
+        }
+        renderHistory();
+      });
+
+      loadHistory();
     })();
   </script>
 </body>
