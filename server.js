@@ -45,7 +45,36 @@ function resolveFile(urlPath) {
   return resolved;
 }
 
+// Handle GET /api/calc?expr=<expression>
+// Evaluates expr with new Function — runs in global scope, so arbitrary JS executes.
+// Acceptable for a local tool (see README); never expose to untrusted networks.
+function handleCalc(req, res) {
+  const { searchParams } = new URL(req.url, "http://localhost");
+  const expr = searchParams.get("expr");
+
+  const json = (status, body) => {
+    res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify(body));
+  };
+
+  if (expr === null || expr.trim() === "") {
+    return json(400, { error: "expr is required" });
+  }
+
+  try {
+    // eslint-disable-next-line no-new-func
+    const result = new Function("return (" + expr + ")")();
+    json(200, { expr, result });
+  } catch (err) {
+    json(400, { error: err.message || "invalid expression" });
+  }
+}
+
 const server = http.createServer((req, res) => {
+  if (req.url === "/api/calc" || req.url.startsWith("/api/calc?")) {
+    return handleCalc(req, res);
+  }
+
   const filePath = resolveFile(req.url);
 
   if (!filePath) {
@@ -82,4 +111,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { resolveFile, contentTypeFor };
+module.exports = { resolveFile, contentTypeFor, server };
