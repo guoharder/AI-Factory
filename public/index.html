@@ -95,18 +95,6 @@
   <script src="/src/math.js"></script>
   <script>
     (function () {
-      document.getElementById("preset").addEventListener("change", function () {
-        var name = this.value;
-        if (!name) return;
-        fetch("/api/preset?name=" + encodeURIComponent(name))
-          .then(function (res) { return res.ok ? res.json() : Promise.reject(res.status); })
-          .then(function (data) { document.getElementById("a").value = data.expr; })
-          .catch(function () { /* silently ignore fetch errors */ });
-      });
-    })();
-  </script>
-  <script>
-    (function () {
       var HISTORY_LIMIT = 20;
       var history = [];
 
@@ -164,12 +152,49 @@
         }
         renderHistory();
       }
+      // When a preset is selected: populate input#a with the expr, then
+      // immediately evaluate it via /api/calc and show the result.
+      document.getElementById("preset").addEventListener("change", function () {
+        var name = this.value;
+        if (!name) return;
+        fetch("/api/preset?name=" + encodeURIComponent(name))
+          .then(function (res) { return res.ok ? res.json() : Promise.reject(res.status); })
+          .then(function (data) {
+            document.getElementById("a").value = data.expr;
+            return fetch("/api/calc?expr=" + encodeURIComponent(data.expr));
+          })
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            if ("result" in data) {
+              showResult("Result: " + data.result);
+            } else {
+              showError("Error: " + (data.error || "could not evaluate expression"));
+            }
+          })
+          .catch(function () { /* silently ignore fetch errors */ });
+      });
 
       function compute(op) {
         var aRaw = document.getElementById("a").value;
         var bRaw = document.getElementById("b").value;
         var a = Number(aRaw);
         var b = Number(bRaw);
+
+        // If aRaw is a non-empty non-numeric expression (e.g. a preset formula),
+        // fall back to evaluating it via /api/calc rather than reporting an error.
+        if (aRaw.trim() !== "" && Number.isNaN(a)) {
+          fetch("/api/calc?expr=" + encodeURIComponent(aRaw))
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+              if ("result" in data) {
+                showResult("Result: " + data.result);
+              } else {
+                showError("Error: " + (data.error || "could not evaluate expression"));
+              }
+            })
+            .catch(function () { showError("Error: could not evaluate expression."); });
+          return;
+        }
 
         if (aRaw.trim() === "" || bRaw.trim() === "" || Number.isNaN(a) || Number.isNaN(b)) {
           showError("Please enter two valid numbers.");

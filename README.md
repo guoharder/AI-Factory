@@ -139,7 +139,9 @@ GET /api/calc?expr=2*(3+4)
 
 `GET /api/preset?name=<name>` reads `data/<name>.txt` and returns the stored arithmetic expression as JSON.
 
-> **Note:** `name` is used directly in the file path with no validation or whitelist. This endpoint is intended for local use only — never expose it to untrusted networks.
+> **Note:** evaluation uses `new Function`, which executes arbitrary JavaScript in the server process. This endpoint is intended for local use only — never expose it to untrusted networks.
+
+`name` must be a non-empty string matching `^[\w-]+$` (letters, digits, underscores, hyphens). Missing or invalid names return HTTP 400, which also prevents path traversal.
 
 Preset files live at `data/<name>.txt`, one expression per file. The repo ships with `circle`, `square`, and `tax`.
 
@@ -154,6 +156,14 @@ GET /api/preset?name=circle
 ```
 
 - **Returns** `{ "name": string, "expr": string }`
+
+**Error — HTTP 400**
+
+```json
+{"error":"invalid name"}
+```
+
+- **Returns** `{ "error": string }` when `name` is missing or does not match `^[\w-]+$`
 
 **Error — HTTP 404**
 
@@ -170,4 +180,8 @@ curl 'http://localhost:4173/api/preset?name=circle'
 curl -i 'http://localhost:4173/api/preset?name=missing'
 # HTTP/1.1 404 Not Found
 # {"error":"not found"}
+
+curl -i 'http://localhost:4173/api/preset'
+# HTTP/1.1 400 Bad Request
+# {"error":"invalid name"}
 ```
