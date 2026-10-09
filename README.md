@@ -1,5 +1,23 @@
 # AI-Factory
 
+## Web Calculator
+
+The calculator is a browser-based UI served at `http://127.0.0.1:4173/` when the app is running.
+
+```bash
+npm start
+```
+
+Enter two numbers in the **Operand A** and **Operand B** fields, then click an operation button (Add, Subtract, Multiply, Divide) to compute a result.
+
+### Calculation history
+
+Each successful computation is appended to a history list displayed below the result box. The list is capped at 20 entries. History is saved to `localStorage` under the key `calc_history`, so it survives page refreshes. Errors and invalid input are never recorded.
+
+A **Clear history** button wipes the list and removes the stored key. In private/incognito mode or when storage is full, the calculator degrades silently — the result still appears, history just isn't persisted.
+
+---
+
 ## Stats API
 
 The stats module (`src/stats.js`) exports six functions for descriptive statistics and numeric utilities. Load it in Node:
