@@ -33,6 +33,18 @@ server.listen(0, "127.0.0.1", async () => {
     const missingBody = JSON.parse(missing.body);
     assert.ok("error" in missingBody, `response body should have an 'error' key`);
 
+    // Case 3: missing name — expect 400 with error key
+    const noName = await get(port, "/api/preset");
+    assert.strictEqual(noName.status, 400, `expected 400, got ${noName.status}`);
+    const noNameBody = JSON.parse(noName.body);
+    assert.ok("error" in noNameBody, `response body should have an 'error' key`);
+
+    // Case 4: path traversal attempt — expect 400 with error key
+    const traversal = await get(port, "/api/preset?name=../package");
+    assert.strictEqual(traversal.status, 400, `expected 400, got ${traversal.status}`);
+    const traversalBody = JSON.parse(traversal.body);
+    assert.ok("error" in traversalBody, `response body should have an 'error' key`);
+
     console.log("preset.test.js: all assertions passed");
   } finally {
     server.close();

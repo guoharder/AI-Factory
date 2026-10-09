@@ -45,6 +45,14 @@ server.listen(0, "127.0.0.1", async () => {
       assert.ok("error" in parsed, `expected "error" key in response body`);
     }
 
+    // Case 4: non-number result — should return 400 with an error key
+    {
+      const { status, body } = await get(port, "/api/calc?expr={}");
+      assert.strictEqual(status, 400, `expected 400, got ${status}`);
+      const parsed = JSON.parse(body);
+      assert.ok("error" in parsed, `expected "error" key in response body`);
+    }
+
     console.log("api.test.js: all assertions passed");
   } finally {
     server.close();
