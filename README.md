@@ -294,6 +294,19 @@ curl -X DELETE 'http://localhost:4173/api/leads/1'
 
 ---
 
+### Unsupported methods
+
+Any HTTP method not listed above returns `405 Method Not Allowed` with an `Allow` header naming the permitted methods.
+
+```bash
+curl -i -X PUT 'http://localhost:4173/api/leads'
+# HTTP/1.1 405 Method Not Allowed
+# Allow: GET, POST
+# {"error":"method not allowed"}
+```
+
+---
+
 ### CRM UI
 
 Open `http://localhost:4173/crm.html` in a browser to manage leads visually. The page lists all leads, provides a form to create new ones, supports inline editing (name, contact, status, notes), and includes a delete button per row.
