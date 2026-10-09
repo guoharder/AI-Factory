@@ -58,6 +58,16 @@
   <h1>Web Calculator</h1>
 
   <div class="row">
+    <label for="preset">预设算式</label>
+    <select id="preset">
+      <option value="">-- 选择预设 --</option>
+      <option value="circle">circle</option>
+      <option value="square">square</option>
+      <option value="tax">tax</option>
+    </select>
+  </div>
+
+  <div class="row">
     <label for="a">Operand A</label>
     <input type="number" id="a" step="any" value="0" />
   </div>
@@ -83,6 +93,18 @@
 
   <!-- Single source of truth: reuse src/math.js (no arithmetic reimplemented here) -->
   <script src="/src/math.js"></script>
+  <script>
+    (function () {
+      document.getElementById("preset").addEventListener("change", function () {
+        var name = this.value;
+        if (!name) return;
+        fetch("/api/preset?name=" + encodeURIComponent(name))
+          .then(function (res) { return res.ok ? res.json() : Promise.reject(res.status); })
+          .then(function (data) { document.getElementById("a").value = data.expr; })
+          .catch(function () { /* silently ignore fetch errors */ });
+      });
+    })();
+  </script>
   <script>
     (function () {
       var HISTORY_LIMIT = 20;

@@ -134,3 +134,40 @@ GET /api/calc?expr=2*(3+4)
 
 - **Returns** `{ "error": string }` when `expr` is missing or empty
 - **Returns** `{ "error": string }` when the expression cannot be evaluated (syntax error, undefined identifier, etc.)
+
+## Preset API
+
+`GET /api/preset?name=<name>` reads `data/<name>.txt` and returns the stored arithmetic expression as JSON.
+
+> **Note:** `name` is used directly in the file path with no validation or whitelist. This endpoint is intended for local use only — never expose it to untrusted networks.
+
+Preset files live at `data/<name>.txt`, one expression per file. The repo ships with `circle`, `square`, and `tax`.
+
+**Success — HTTP 200**
+
+```
+GET /api/preset?name=circle
+```
+
+```json
+{"name":"circle","expr":"3.14*2*2"}
+```
+
+- **Returns** `{ "name": string, "expr": string }`
+
+**Error — HTTP 404**
+
+```json
+{"error":"not found"}
+```
+
+- **Returns** `{ "error": string }` when `data/<name>.txt` does not exist
+
+```bash
+curl 'http://localhost:4173/api/preset?name=circle'
+# {"name":"circle","expr":"3.14*2*2"}
+
+curl -i 'http://localhost:4173/api/preset?name=missing'
+# HTTP/1.1 404 Not Found
+# {"error":"not found"}
+```
