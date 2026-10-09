@@ -219,6 +219,12 @@ const server = http.createServer((req, res) => {
     if (urlPath === "/api/leads") {
       if (req.method === "POST") return handleLeadCreate(req, res);
       if (req.method === "GET")  return handleLeadList(req, res);
+      // Unsupported method on /api/leads
+      res.writeHead(405, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Allow": "GET, POST",
+      });
+      return res.end(JSON.stringify({ error: "method not allowed" }));
     }
     const match = urlPath.match(/^\/api\/leads\/(\d+)$/);
     if (match) {
@@ -226,6 +232,12 @@ const server = http.createServer((req, res) => {
       if (req.method === "GET")    return handleLeadGet(req, res, id);
       if (req.method === "PATCH")  return handleLeadUpdate(req, res, id);
       if (req.method === "DELETE") return handleLeadDelete(req, res, id);
+      // Unsupported method on /api/leads/:id
+      res.writeHead(405, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Allow": "GET, PATCH, DELETE",
+      });
+      return res.end(JSON.stringify({ error: "method not allowed" }));
     }
     res.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
     return res.end(JSON.stringify({ error: "not found" }));

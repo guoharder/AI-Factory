@@ -128,6 +128,21 @@ server.listen(0, "127.0.0.1", async () => {
       assert.ok("error" in parsed, `expected "error" key in response body`);
     }
 
+    // Case 10: unsupported method on /api/leads — expect 405 with Allow header
+    {
+      const { status, body } = await request(port, "PUT", "/api/leads");
+      assert.strictEqual(status, 405, `expected 405, got ${status}`);
+      const parsed = JSON.parse(body);
+      assert.ok("error" in parsed, `expected "error" key in 405 response body`);
+    }
+
+    // Case 11: GET /crm.html — static file served with text/html content-type
+    {
+      const { status, body } = await get(port, "/crm.html");
+      assert.strictEqual(status, 200, `expected 200 for /crm.html, got ${status}`);
+      assert.ok(body.includes("CRM Lead Management"), `crm.html should contain page title`);
+    }
+
     console.log("crm.test.js: all assertions passed");
   } finally {
     server.close();
