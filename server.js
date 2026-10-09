@@ -8,6 +8,7 @@ const PORT = 4173;
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, "public");
 const MATH_FILE = path.join(ROOT, "src", "math.js");
+const DATA_DIR = path.join(ROOT, "data");
 
 const CONTENT_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -45,6 +46,36 @@ function resolveFile(urlPath) {
   return resolved;
 }
 
+// Handle GET /api/preset?name=<name>
+// Reads data/<name>.txt and returns {name, expr}.
+// name must be a non-empty /^[\w-]+$/ string; missing or invalid values get
+// HTTP 400, which also blocks path traversal (dots and slashes are rejected).
+function handlePreset(req, res) {
+  const { searchParams } = new URL(req.url, "http://localhost");
+  const name = searchParams.get("name");
+
+  const json = (status, body) => {
+    res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify(body));
+  };
+
+  if (!name || !/^[\w-]+$/.test(name)) {
+    return json(400, { error: "invalid name" });
+  }
+
+  const filePath = path.join(DATA_DIR, name + ".txt");
+
+  fs.readFile(filePath, "utf8", (err, data) => {
+    if (err) {
+      if (err.code === "ENOENT") {
+        return json(404, { error: "not found" });
+      }
+      return json(500, { error: err.message || "internal error" });
+    }
+    json(200, { name, expr: data.trim() });
+  });
+}
+
 // Handle GET /api/calc?expr=<expression>
 // Evaluates expr with new Function — runs in global scope, so arbitrary JS executes.
 // Acceptable for a local tool (see README); never expose to untrusted networks.
@@ -64,6 +95,9 @@ function handleCalc(req, res) {
   try {
     // eslint-disable-next-line no-new-func
     const result = new Function("return (" + expr + ")")();
+    if (!Number.isFinite(result)) {
+      return json(400, { error: "expression did not return a finite number" });
+    }
     json(200, { expr, result });
   } catch (err) {
     json(400, { error: err.message || "invalid expression" });
@@ -73,6 +107,10 @@ function handleCalc(req, res) {
 const server = http.createServer((req, res) => {
   if (req.url === "/api/calc" || req.url.startsWith("/api/calc?")) {
     return handleCalc(req, res);
+  }
+
+  if (req.url === "/api/preset" || req.url.startsWith("/api/preset?")) {
+    return handlePreset(req, res);
   }
 
   const filePath = resolveFile(req.url);
@@ -111,4 +149,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { resolveFile, contentTypeFor, server };
+module.exports = { resolveFile, contentTypeFor, handlePreset, server };

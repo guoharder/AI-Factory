@@ -15,7 +15,7 @@
     h1 { font-size: 1.4rem; }
     .row { margin: 0.75rem 0; }
     label { display: inline-block; width: 6rem; }
-    input[type="number"] { padding: 0.4rem; width: 10rem; }
+    input[type="text"], input[type="number"] { padding: 0.4rem; width: 10rem; }
     .ops button {
       padding: 0.5rem 0.9rem;
       margin-right: 0.4rem;
@@ -58,8 +58,18 @@
   <h1>Web Calculator</h1>
 
   <div class="row">
+    <label for="preset">预设算式</label>
+    <select id="preset">
+      <option value="">-- 选择预设 --</option>
+      <option value="circle">circle</option>
+      <option value="square">square</option>
+      <option value="tax">tax</option>
+    </select>
+  </div>
+
+  <div class="row">
     <label for="a">Operand A</label>
-    <input type="number" id="a" step="any" value="0" />
+    <input type="text" id="a" value="0" />
   </div>
   <div class="row">
     <label for="b">Operand B</label>
@@ -142,12 +152,49 @@
         }
         renderHistory();
       }
+      // When a preset is selected: populate input#a with the expr, then
+      // immediately evaluate it via /api/calc and show the result.
+      document.getElementById("preset").addEventListener("change", function () {
+        var name = this.value;
+        if (!name) return;
+        fetch("/api/preset?name=" + encodeURIComponent(name))
+          .then(function (res) { return res.ok ? res.json() : Promise.reject(res.status); })
+          .then(function (data) {
+            document.getElementById("a").value = data.expr;
+            return fetch("/api/calc?expr=" + encodeURIComponent(data.expr));
+          })
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            if ("result" in data) {
+              showResult("Result: " + data.result);
+            } else {
+              showError("Error: " + (data.error || "could not evaluate expression"));
+            }
+          })
+          .catch(function () { /* silently ignore fetch errors */ });
+      });
 
       function compute(op) {
         var aRaw = document.getElementById("a").value;
         var bRaw = document.getElementById("b").value;
         var a = Number(aRaw);
         var b = Number(bRaw);
+
+        // If aRaw is a non-empty non-numeric expression (e.g. a preset formula),
+        // fall back to evaluating it via /api/calc rather than reporting an error.
+        if (aRaw.trim() !== "" && Number.isNaN(a)) {
+          fetch("/api/calc?expr=" + encodeURIComponent(aRaw))
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+              if ("result" in data) {
+                showResult("Result: " + data.result);
+              } else {
+                showError("Error: " + (data.error || "could not evaluate expression"));
+              }
+            })
+            .catch(function () { showError("Error: could not evaluate expression."); });
+          return;
+        }
 
         if (aRaw.trim() === "" || bRaw.trim() === "" || Number.isNaN(a) || Number.isNaN(b)) {
           showError("Please enter two valid numbers.");
