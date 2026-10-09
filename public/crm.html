@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CRM Lead Management</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 32rem;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      color: #1a1a1a;
+    }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1.1rem; margin-top: 1.5rem; }
+    form { margin: 0.75rem 0; }
+    .field { margin: 0.5rem 0; }
+    label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; }
+    input[type="text"], select, textarea {
+      padding: 0.4rem;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 0.95rem;
+    }
+    textarea { min-height: 4rem; resize: vertical; }
+    button {
+      padding: 0.5rem 0.9rem;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-right: 0.4rem;
+    }
+    #leads-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
+    #leads-table th, #leads-table td {
+      border: 1px solid #ccc;
+      padding: 0.4rem 0.5rem;
+      text-align: left;
+      vertical-align: top;
+      font-size: 0.95rem;
+    }
+    #leads-table th { background: #f4f4f4; font-size: 0.85rem; }
+    #status-new { color: #1a1a1a; }
+    #status-contacted { color: #0058a3; }
+    #status-qualified { color: #1a7a3a; }
+    #status-lost { color: #b00020; }
+    #message {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      min-height: 1.4rem;
+      font-size: 1rem;
+    }
+    #message.error { color: #b00020; border-color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>CRM Lead Management</h1>
+
+  <h2>Add a lead</h2>
+  <form id="create-form">
+    <div class="field">
+      <label for="name">Name</label>
+      <input type="text" id="name" name="name" required />
+    </div>
+    <div class="field">
+      <label for="contact">Contact</label>
+      <input type="text" id="contact" name="contact" required />
+    </div>
+    <div class="field">
+      <label for="notes">Notes (optional)</label>
+      <textarea id="notes" name="notes"></textarea>
+    </div>
+    <button type="submit">Add lead</button>
+  </form>
+
+  <h2>Leads</h2>
+  <table id="leads-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Contact</th>
+        <th>Status</th>
+        <th>Notes</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="leads-body"></tbody>
+  </table>
+
+  <div id="message" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      var messageEl = document.getElementById("message");
+
+      function showMessage(text, isError) {
+        messageEl.textContent = text;
+        messageEl.classList.toggle("error", !!isError);
+      }
+
+      function escapeText(value) {
+        var div = document.createElement("div");
+        div.textContent = value == null ? "" : String(value);
+        return div.innerHTML;
+      }
+
+      // Fetch every lead on load and render the table.
+      function loadLeads() {
+        fetch("/api/leads")
+          .then(function (res) { return res.json(); })
+          .then(function (leads) { renderLeads(leads); })
+          .catch(function () { showMessage("Failed to load leads.", true); });
+      }
+
+      function renderLeads(leads) {
+        var body = document.getElementById("leads-body");
+        body.textContent = "";
+        if (!leads || leads.length === 0) {
+          var row = body.insertRow();
+          var cell = row.insertCell();
+          cell.colSpan = 5;
+          cell.textContent = "No leads yet.";
+          return;
+        }
+        for (var i = 0; i < leads.length; i++) {
+          body.appendChild(buildRow(leads[i]));
+        }
+      }
+
+      // A lead row shows the fields and swaps to an inline edit form on click.
+      function buildRow(lead) {
+        var tr = document.createElement("tr");
+        tr.dataset.id = lead.id;
+
+        var nameTd = document.createElement("td");
+        nameTd.textContent = lead.name;
+        var contactTd = document.createElement("td");
+        contactTd.textContent = lead.contact;
+        var statusTd = document.createElement("td");
+        statusTd.id = "status-" + lead.status;
+        statusTd.textContent = lead.status;
+        var notesTd = document.createElement("td");
+        notesTd.textContent = lead.notes || "";
+
+        var actionsTd = document.createElement("td");
+
+        var editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.textContent = "Edit";
+        editBtn.addEventListener("click", function () { showEditForm(tr, lead); });
+
+        var deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.addEventListener("click", function () { deleteLead(lead.id); });
+
+        actionsTd.appendChild(editBtn);
+        actionsTd.appendChild(deleteBtn);
+
+        tr.appendChild(nameTd);
+        tr.appendChild(contactTd);
+        tr.appendChild(statusTd);
+        tr.appendChild(notesTd);
+        tr.appendChild(actionsTd);
+        return tr;
+      }
+
+      // Replace a row's display cells with an inline edit form.
+      function showEditForm(tr, lead) {
+        tr.textContent = "";
+
+        var nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.value = lead.name;
+        nameInput.setAttribute("aria-label", "Name");
+
+        var contactInput = document.createElement("input");
+        contactInput.type = "text";
+        contactInput.value = lead.contact;
+        contactInput.setAttribute("aria-label", "Contact");
+
+        var statusSelect = document.createElement("select");
+        statusSelect.setAttribute("aria-label", "Status");
+        ["new", "contacted", "qualified", "lost"].forEach(function (s) {
+          var opt = document.createElement("option");
+          opt.value = s;
+          opt.textContent = s;
+          if (s === lead.status) opt.selected = true;
+          statusSelect.appendChild(opt);
+        });
+
+        var notesInput = document.createElement("textarea");
+        notesInput.value = lead.notes || "";
+        notesInput.setAttribute("aria-label", "Notes");
+
+        var saveBtn = document.createElement("button");
+        saveBtn.type = "button";
+        saveBtn.textContent = "Save";
+        saveBtn.addEventListener("click", function () {
+          updateLead(lead.id, {
+            name: nameInput.value,
+            contact: contactInput.value,
+            status: statusSelect.value,
+            notes: notesInput.value,
+          });
+        });
+
+        var cancelBtn = document.createElement("button");
+        cancelBtn.type = "button";
+        cancelBtn.textContent = "Cancel";
+        cancelBtn.addEventListener("click", loadLeads);
+
+        function cellWith(child) {
+          var td = document.createElement("td");
+          td.appendChild(child);
+          return td;
+        }
+
+        tr.appendChild(cellWith(nameInput));
+        tr.appendChild(cellWith(contactInput));
+        tr.appendChild(cellWith(statusSelect));
+        tr.appendChild(cellWith(notesInput));
+        var actions = document.createElement("td");
+        actions.appendChild(saveBtn);
+        actions.appendChild(cancelBtn);
+        tr.appendChild(actions);
+      }
+
+      // Create a new lead from the form, then refresh the list.
+      document.getElementById("create-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var payload = {
+          name: document.getElementById("name").value,
+          contact: document.getElementById("contact").value,
+          notes: document.getElementById("notes").value,
+        };
+        fetch("/api/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+          .then(function (res) {
+            if (!res.ok) return res.json().then(function (d) { throw new Error(d.error || "Failed to add lead"); });
+            return res.json();
+          })
+          .then(function () {
+            document.getElementById("create-form").reset();
+            showMessage("Lead added.");
+            loadLeads();
+          })
+          .catch(function (err) { showMessage(err.message, true); });
+      });
+
+      // PATCH the lead with the edited fields, then refresh.
+      function updateLead(id, fields) {
+        fetch("/api/leads/" + id, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(fields),
+        })
+          .then(function (res) {
+            if (!res.ok) return res.json().then(function (d) { throw new Error(d.error || "Failed to update lead"); });
+            return res.json();
+          })
+          .then(function () {
+            showMessage("Lead updated.");
+            loadLeads();
+          })
+          .catch(function (err) { showMessage(err.message, true); });
+      }
+
+      // DELETE the lead, then refresh.
+      function deleteLead(id) {
+        fetch("/api/leads/" + id, { method: "DELETE" })
+          .then(function (res) {
+            if (res.status !== 204) return res.json().then(function (d) { throw new Error(d.error || "Failed to delete lead"); });
+          })
+          .then(function () {
+            showMessage("Lead deleted.");
+            loadLeads();
+          })
+          .catch(function (err) { showMessage(err.message, true); });
+      }
+
+      loadLeads();
+    })();
+  </script>
+</body>
+</html>
