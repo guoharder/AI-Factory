@@ -133,7 +133,7 @@
           if (raw) {
             var parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) {
-              history = parsed;
+              history = parsed.filter(function (e) { return e && typeof e.expr === 'string'; });
             }
           }
         } catch (e) {
