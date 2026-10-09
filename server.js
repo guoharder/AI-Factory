@@ -104,6 +104,106 @@ function handleCalc(req, res) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// CRM lead store — in-memory, resets on server restart
+// ---------------------------------------------------------------------------
+let leads = [];
+let nextLeadId = 1;
+
+// Reads the full request body and resolves with the parsed JSON object,
+// or rejects if the body is not valid JSON.
+function readJSON(req) {
+  return new Promise((resolve, reject) => {
+    let raw = "";
+    req.setEncoding("utf8");
+    req.on("data", (chunk) => { raw += chunk; });
+    req.on("end", () => {
+      try {
+        resolve(raw.trim() ? JSON.parse(raw) : {});
+      } catch (e) {
+        reject(e);
+      }
+    });
+    req.on("error", reject);
+  });
+}
+
+// POST /api/leads — create a new lead
+// Body: { name, contact, notes? }
+// Returns 201 + lead on success, 400 if name or contact is missing.
+function handleLeadCreate(req, res) {
+  const json = (status, body) => {
+    res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify(body));
+  };
+
+  readJSON(req).then((body) => {
+    const { name, contact, notes } = body || {};
+    if (!name || !contact) {
+      return json(400, { error: "name and contact are required" });
+    }
+    const lead = {
+      id: nextLeadId++,
+      name: String(name),
+      contact: String(contact),
+      status: "new",
+      notes: notes != null ? String(notes) : "",
+      createdAt: new Date().toISOString(),
+    };
+    leads.push(lead);
+    json(201, lead);
+  }).catch(() => json(400, { error: "invalid JSON body" }));
+}
+
+// GET /api/leads — list all leads
+function handleLeadList(req, res) {
+  res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+  res.end(JSON.stringify(leads));
+}
+
+// GET /api/leads/:id — get a single lead by id
+function handleLeadGet(req, res, id) {
+  const json = (status, body) => {
+    res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify(body));
+  };
+  const lead = leads.find((l) => l.id === id);
+  if (!lead) return json(404, { error: "lead not found" });
+  json(200, lead);
+}
+
+// PATCH /api/leads/:id — update allowed fields on an existing lead
+// Allowed fields: name, contact, status, notes
+function handleLeadUpdate(req, res, id) {
+  const json = (status, body) => {
+    res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify(body));
+  };
+  const lead = leads.find((l) => l.id === id);
+  if (!lead) return json(404, { error: "lead not found" });
+
+  readJSON(req).then((body) => {
+    const allowed = ["name", "contact", "status", "notes"];
+    for (const key of allowed) {
+      if (body[key] != null) lead[key] = String(body[key]);
+    }
+    json(200, lead);
+  }).catch(() => json(400, { error: "invalid JSON body" }));
+}
+
+// DELETE /api/leads/:id — remove a lead; returns 204 No Content on success
+function handleLeadDelete(req, res, id) {
+  const json = (status, body) => {
+    res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify(body));
+  };
+  const idx = leads.findIndex((l) => l.id === id);
+  if (idx === -1) return json(404, { error: "lead not found" });
+  leads.splice(idx, 1);
+  res.writeHead(204);
+  res.end();
+}
+
 const server = http.createServer((req, res) => {
   if (req.url === "/api/calc" || req.url.startsWith("/api/calc?")) {
     return handleCalc(req, res);
@@ -111,6 +211,24 @@ const server = http.createServer((req, res) => {
 
   if (req.url === "/api/preset" || req.url.startsWith("/api/preset?")) {
     return handlePreset(req, res);
+  }
+
+  // CRM leads — dispatch on method and path
+  if (req.url === "/api/leads" || req.url.startsWith("/api/leads/")) {
+    const urlPath = req.url.split("?")[0]; // strip any query string
+    if (urlPath === "/api/leads") {
+      if (req.method === "POST") return handleLeadCreate(req, res);
+      if (req.method === "GET")  return handleLeadList(req, res);
+    }
+    const match = urlPath.match(/^\/api\/leads\/(\d+)$/);
+    if (match) {
+      const id = parseInt(match[1], 10);
+      if (req.method === "GET")    return handleLeadGet(req, res, id);
+      if (req.method === "PATCH")  return handleLeadUpdate(req, res, id);
+      if (req.method === "DELETE") return handleLeadDelete(req, res, id);
+    }
+    res.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
+    return res.end(JSON.stringify({ error: "not found" }));
   }
 
   const filePath = resolveFile(req.url);
@@ -149,4 +267,16 @@ if (require.main === module) {
   });
 }
 
-module.exports = { resolveFile, contentTypeFor, handlePreset, server };
+module.exports = {
+  resolveFile,
+  contentTypeFor,
+  handlePreset,
+  handleLeadCreate,
+  handleLeadList,
+  handleLeadGet,
+  handleLeadUpdate,
+  handleLeadDelete,
+  server,
+  // Exposed for test isolation: allows tests to reset the store between suites.
+  _resetLeads() { leads = []; nextLeadId = 1; },
+};

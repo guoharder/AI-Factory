@@ -186,3 +186,114 @@ curl -i 'http://localhost:4173/api/preset'
 # HTTP/1.1 400 Bad Request
 # {"error":"invalid name"}
 ```
+
+---
+
+## CRM Lead Management
+
+A simple in-memory lead store is available via REST API and a browser UI at `/crm.html`.
+
+> **Note:** the store is in-memory — leads reset when the server restarts. It is intended for local use only.
+
+### Endpoints
+
+---
+
+#### `POST /api/leads`
+
+Create a new lead.
+
+**Request body** `{ "name": string, "contact": string, "notes"?: string }`
+
+**Success — HTTP 201**
+
+```json
+{
+  "id": 1,
+  "name": "Alice",
+  "contact": "alice@example.com",
+  "status": "new",
+  "notes": "",
+  "createdAt": "2026-10-09T12:00:00.000Z"
+}
+```
+
+**Error — HTTP 400** when `name` or `contact` is missing.
+
+```json
+{ "error": "name and contact are required" }
+```
+
+---
+
+#### `GET /api/leads`
+
+List all leads.
+
+**Success — HTTP 200** — returns a JSON array of lead objects (empty array when no leads exist).
+
+```bash
+curl 'http://localhost:4173/api/leads'
+# [{"id":1,"name":"Alice","contact":"alice@example.com","status":"new","notes":"","createdAt":"..."}]
+```
+
+---
+
+#### `GET /api/leads/:id`
+
+Get a single lead by its numeric `id`.
+
+**Success — HTTP 200** — returns the lead object.
+
+**Error — HTTP 404** when the `id` does not exist.
+
+```bash
+curl 'http://localhost:4173/api/leads/1'
+# {"id":1,"name":"Alice",...}
+
+curl -i 'http://localhost:4173/api/leads/99'
+# HTTP/1.1 404 Not Found
+# {"error":"lead not found"}
+```
+
+---
+
+#### `PATCH /api/leads/:id`
+
+Update one or more fields on an existing lead. Allowed fields: `name`, `contact`, `status`, `notes`.
+
+Valid `status` values: `new`, `contacted`, `qualified`, `lost`.
+
+**Request body** `{ "status"?: string, "name"?: string, "contact"?: string, "notes"?: string }`
+
+**Success — HTTP 200** — returns the updated lead object.
+
+**Error — HTTP 404** when the `id` does not exist.
+
+```bash
+curl -X PATCH 'http://localhost:4173/api/leads/1' \
+  -H 'Content-Type: application/json' \
+  -d '{"status":"contacted","notes":"left voicemail"}'
+# {"id":1,"name":"Alice","contact":"alice@example.com","status":"contacted","notes":"left voicemail","createdAt":"..."}
+```
+
+---
+
+#### `DELETE /api/leads/:id`
+
+Remove a lead permanently.
+
+**Success — HTTP 204** — no response body.
+
+**Error — HTTP 404** when the `id` does not exist.
+
+```bash
+curl -X DELETE 'http://localhost:4173/api/leads/1'
+# (204 No Content)
+```
+
+---
+
+### CRM UI
+
+Open `http://localhost:4173/crm.html` in a browser to manage leads visually. The page lists all leads, provides a form to create new ones, supports inline editing (name, contact, status, notes), and includes a delete button per row.
