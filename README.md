@@ -134,12 +134,13 @@ GET /api/calc?expr=2*(3+4)
 
 - **Returns** `{ "error": string }` when `expr` is missing or empty
 - **Returns** `{ "error": string }` when the expression cannot be evaluated (syntax error, undefined identifier, etc.)
+- **Returns** `{ "error": string }` when the expression evaluates to a non-finite value (`Infinity`, `-Infinity`, `NaN`)
 
 ## Preset API
 
 `GET /api/preset?name=<name>` reads `data/<name>.txt` and returns the stored arithmetic expression as JSON.
 
-> **Note:** evaluation uses `new Function`, which executes arbitrary JavaScript in the server process. This endpoint is intended for local use only — never expose it to untrusted networks.
+> **Note:** this endpoint is intended for local use only — never expose it to untrusted networks.
 
 `name` must be a non-empty string matching `^[\w-]+$` (letters, digits, underscores, hyphens). Missing or invalid names return HTTP 400, which also prevents path traversal.
 
